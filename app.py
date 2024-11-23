@@ -20,13 +20,13 @@ import matplotlib.pyplot as plt
 import io
 import base64
 from typing import cast
-from graph import Graph  # Убедитесь, что модуль `graph` доступен
+from graph import Graph
 
 def main(page: Page):
     page.title = "Антикризисное финансовое планирование"
     page.theme_mode = "light"
 
-    graph = Graph(0)  # Изначально пустой граф
+    graph = Graph(0)
     vertices_input = TextField(label="Количество задач (вершин)", width=200)
     edges_list = ListView(expand=1, spacing=5, padding=padding.all(10))
     source_input = TextField(label="Начальная задача (вершина)", width=200)
@@ -61,9 +61,9 @@ def main(page: Page):
             if num_vertices < 1:
                 raise ValueError
             graph.V = num_vertices
-            graph.graph = []  # Сброс всех рёбер
-            edges_list.controls.clear()  # Очистка списка рёбер
-            update_dropdowns(num_vertices)  # Обновляем Dropdown
+            graph.graph = []
+            edges_list.controls.clear()
+            update_dropdowns(num_vertices)
             show_snackbar(f"Граф с {num_vertices} задачами создан.")
         except ValueError:
             show_snackbar("Введите корректное число вершин!", bgcolor=Colors.ERROR)
@@ -93,13 +93,13 @@ def main(page: Page):
         try:
             src = int(source_input.value)
             result = graph.bellman_ford(src)
-            if isinstance(result, str):  # Если вернулся текст ошибки
+            if isinstance(result, str):
                 result_view.content = Text(result, color=Colors.RED)
             else:
                 result_view.content = Text(
                     "Минимальные расстояния: " + ", ".join(map(str, result))
                 )
-                draw_graph(result)  # Рисуем график
+                draw_graph(result)
             page.update()
         except ValueError:
             show_snackbar(
@@ -109,37 +109,32 @@ def main(page: Page):
     def draw_graph(data):
         """Создаёт график минимальных расстояний."""
         import matplotlib
-        matplotlib.use('Agg')  # Отключаем графический интерфейс
+        matplotlib.use('Agg')
 
-        # Создаем график с помощью Matplotlib
-        fig, ax = plt.subplots(figsize=(5, 3))  # Задаем размеры графика
+        fig, ax = plt.subplots(figsize=(5, 3))
         ax.plot(range(len(data)), data, marker="o", color="blue")
         ax.set_title("Минимальные расстояния от начальной задачи")
         ax.set_xlabel("Задачи")
         ax.set_ylabel("Затраты")
 
-        # Сохраняем график в буфер
         with io.BytesIO() as buf:
             plt.savefig(buf, format="png")
             buf.seek(0)
             encoded_image = base64.b64encode(buf.getvalue()).decode("ascii")
 
-        # Обновляем содержимое контейнера с графиком
         graph_image.content = Image(
-            src_base64=encoded_image,  # Передаем график в base64
-            fit=ft.ImageFit.CONTAIN,  # Устанавливаем способ отображения
-            width=500,  # Ширина изображения
-            height=300,  # Высота изображения
+            src_base64=encoded_image,
+            fit=ft.ImageFit.CONTAIN,
+            width=500,
+            height=300,
         )
-        plt.close(fig)  # Закрываем график, чтобы освободить ресурсы
-        page.update()  # Обновляем страницу
-
-    # Обновляем страницу
+        plt.close(fig)
+        page.update()
 
     edges_input = Row(
         controls=[
-            Dropdown(width=100, options=[]),  # Будет обновляться
-            Dropdown(width=100, options=[]),  # Будет обновляться
+            Dropdown(width=100, options=[]),
+            Dropdown(width=100, options=[]),
             TextField(label="Вес", width=100),
         ]
     )
