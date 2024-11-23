@@ -12,7 +12,6 @@ from flet import (
     SnackBar,
     alignment,
     padding,
-    border,
     Colors,
     FontWeight,
 )
@@ -37,7 +36,7 @@ def main(page: Page):
         bgcolor=Colors.LIGHT_GREEN_100,
     )
     graph_image = Container(
-        content=Text("График появится здесь"),
+        content=Image(src_base64=None, width=500, height=300, fit=ft.ImageFit.CONTAIN),
         height=300,
         alignment=alignment.center,
     )
@@ -48,17 +47,32 @@ def main(page: Page):
         snackbar.open = True
         page.update()
 
+    def update_dropdowns(num_vertices):
+        """Обновляет выпадающие списки для выбора вершин."""
+        options = [ft.dropdown.Option(str(i)) for i in range(num_vertices)]
+        cast(Dropdown, edges_input.controls[0]).options = options
+        cast(Dropdown, edges_input.controls[1]).options = options
+        page.update()
+
     def set_graph(e):
+        """Устанавливает новое количество вершин и сбрасывает граф."""
         try:
             num_vertices = int(vertices_input.value)
             if num_vertices < 1:
                 raise ValueError
             graph.V = num_vertices
+            graph.graph = []  # Сброс всех рёбер
+            edges_list.controls.clear()  # Очистка списка рёбер
+            update_dropdowns(num_vertices)  # Обновляем Dropdown
             show_snackbar(f"Граф с {num_vertices} задачами создан.")
         except ValueError:
             show_snackbar("Введите корректное число вершин!", bgcolor=Colors.ERROR)
 
     def add_edge(e):
+        """Добавляет ребро в граф."""
+        if graph.V == 0:
+            show_snackbar("Сначала создайте граф!", bgcolor=Colors.ERROR)
+            return
         try:
             u = int(cast(ft.Dropdown, edges_input.controls[0]).value)
             v = int(cast(ft.Dropdown, edges_input.controls[1]).value)
@@ -72,10 +86,14 @@ def main(page: Page):
             show_snackbar("Введите корректные данные для ребра!", bgcolor=Colors.ERROR)
 
     def calculate(e):
+        """Запускает алгоритм Беллмана-Форда."""
+        if graph.V == 0 or not graph.graph:
+            show_snackbar("Сначала создайте граф и добавьте рёбра!", bgcolor=Colors.ERROR)
+            return
         try:
             src = int(source_input.value)
             result = graph.bellman_ford(src)
-            if isinstance(result, str):
+            if isinstance(result, str):  # Если вернулся текст ошибки
                 result_view.content = Text(result, color=Colors.RED)
             else:
                 result_view.content = Text(
@@ -89,26 +107,39 @@ def main(page: Page):
             )
 
     def draw_graph(data):
-        fig, ax = plt.subplots()
+        """Создаёт график минимальных расстояний."""
+        import matplotlib
+        matplotlib.use('Agg')  # Отключаем графический интерфейс
+
+        # Создаем график с помощью Matplotlib
+        fig, ax = plt.subplots(figsize=(5, 3))  # Задаем размеры графика
         ax.plot(range(len(data)), data, marker="o", color="blue")
         ax.set_title("Минимальные расстояния от начальной задачи")
         ax.set_xlabel("Задачи")
         ax.set_ylabel("Затраты")
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png")
-        buf.seek(0)
-        encoded_image = base64.b64encode(buf.getvalue()).decode("ascii")
+
+        # Сохраняем график в буфер
+        with io.BytesIO() as buf:
+            plt.savefig(buf, format="png")
+            buf.seek(0)
+            encoded_image = base64.b64encode(buf.getvalue()).decode("ascii")
+
+        # Обновляем содержимое контейнера с графиком
         graph_image.content = Image(
-            src_base64=encoded_image,
-            fit=ft.ImageFit.CONTAIN,
+            src_base64=encoded_image,  # Передаем график в base64
+            fit=ft.ImageFit.CONTAIN,  # Устанавливаем способ отображения
+            width=500,  # Ширина изображения
+            height=300,  # Высота изображения
         )
-        buf.close()
-        page.update()
+        plt.close(fig)  # Закрываем график, чтобы освободить ресурсы
+        page.update()  # Обновляем страницу
+
+    # Обновляем страницу
 
     edges_input = Row(
         controls=[
-            Dropdown(width=100, options=[ft.dropdown.Option(str(i)) for i in range(10)]),
-            Dropdown(width=100, options=[ft.dropdown.Option(str(i)) for i in range(10)]),
+            Dropdown(width=100, options=[]),  # Будет обновляться
+            Dropdown(width=100, options=[]),  # Будет обновляться
             TextField(label="Вес", width=100),
         ]
     )
@@ -141,6 +172,7 @@ def main(page: Page):
                 graph_image,
             ],
             spacing=10,
+            scroll=ft.ScrollMode.ALWAYS
         )
     )
 
