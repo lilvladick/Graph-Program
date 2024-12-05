@@ -63,8 +63,13 @@ class GraphGUI(QWidget):
     def add_vertex(self):
         """Добавляет вершину на холст."""
         try:
+            if len(self.vertices) >= 100:
+                self.show_error("Ошибка", "Превышено максимальное количество вершин (100).")
+                return
+
             x = int(self.vertex_x_input.text())
             y = int(self.vertex_y_input.text())
+            y = self.graphics_view.height() - y
 
             self.vertices.append((x, y))
             self.graph = Graph(len(self.vertices))
@@ -81,13 +86,12 @@ class GraphGUI(QWidget):
             self.show_error("Ошибка", "Введите корректные числа для координат.")
 
     def add_edge(self):
-        """Добавляет ребро между двумя вершинами."""
         try:
             u = int(self.edge_u_input.text())
             v = int(self.edge_v_input.text())
             weight = int(self.edge_weight_input.text())
 
-            if u >= len(self.vertices) or v >= len(self.vertices):
+            if u < 0 or v < 0 or u >= len(self.vertices) or v >= len(self.vertices):
                 raise ValueError("Неверные номера вершин.")
 
             self.graph.add_edge(u, v, weight)
